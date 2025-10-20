@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="124.021" height="47.01" viewBox="0 0 124 47">
+  <!--
+    This SVG logo is inspired by an academic theme, featuring an open book, a quill, gears, and a graduation cap.
+    The design aims to be clean, professional, and suitable for educational branding.
+  -->
+  <g id="academy-logo-group" transform="translate(32, 1)">
+
+    <!-- Decorative circular border -->
+    <circle cx="30" cy="22.5" r="22" fill="none" stroke="#4a90e2" stroke-width="1.5" opacity="0.7"/>
+    <circle cx="30" cy="22.5" r="20" fill="none" stroke="#50e3c2" stroke-width="1" opacity="0.6"/>
+
+    <!-- Gears representing science and industry -->
+    <g id="gears" transform="translate(18, 8)">
+      <!-- Large Gear -->
+      <path d="M 5.5 0 A 5.5 5.5 0 0 1 5.5 11 A 5.5 5.5 0 0 1 5.5 0 Z M 5.5 1.5 A 4 4 0 0 0 5.5 9.5 A 4 4 0 0 0 5.5 1.5 Z" fill="#2d394f"/>
+      <!-- Gear Teeth -->
+      <g stroke="#2d394f" stroke-width="1" stroke-linecap="round">
+        <path d="M 5.5 -1 L 5.5 -2" />
+        <path d="M 11.5 5.5 L 12.5 5.5" />
+        <path d="M 5.5 12 L 5.5 13" />
+        <path d="M -0.5 5.5 L -1.5 5.5" />
+        <path d="M 1.6 1.6 L 0.9 0.9" />
+        <path d="M 9.4 1.6 L 10.1 0.9" />
+        <path d="M 1.6 9.4 L 0.9 10.1" />
+        <path d="M 9.4 9.4 L 10.1 10.1" />
+      </g>
+    </g>
+
+    <!-- Graduation cap representing achievement -->
+    <g id="grad-cap" transform="translate(28, 6)">
+      <path d="M -5 5 L 5 2 L 15 5 L 5 8 Z" fill="#2d394f" />
+      <path d="M 5 8 L 5 11" stroke="#f8b400" stroke-width="1"/>
+      <circle cx="5" cy="12" r="1" fill="#f8b400"/>
+    </g>
+
+    <!-- Open book as the central element -->
+    <g id="open-book" transform="translate(5, 20)">
+      <!-- Book cover and spine -->
+      <path d="M 0 0 C 10 -3, 40 -3, 50 0 L 50 20 C 40 17, 10 17, 0 20 Z" fill="#2d394f"/>
+      <!-- Pages of the book -->
+      <path d="M 5 2 C 12 0, 38 0, 45 2 L 45 18 C 38 16, 12 16, 5 18 Z" fill="#f0f0f0"/>
+      <!-- Lines on pages for detail -->
+      <path d="M 10 6 H 22 M 10 9 H 20 M 10 12 H 22" stroke="#cccccc" stroke-width="0.5"/>
+      <path d="M 28 6 H 40 M 30 9 H 40 M 28 12 H 40" stroke="#cccccc" stroke-width="0.5"/>
+    </g>
+
+    <!-- Quill pen over the book -->
+    <g id="quill" transform="translate(38, 5) rotate(15)">
+      <path d="M 0 0 C 5 15, -5 25, 0 30 Q 2 25, 5 25 Q 3 15, 2 0 Z" fill="#4a90e2"/>
+      <path d="M 0 30 L -2 32 L 2 31 Z" fill="#f8b400"/>
+    </g>
+
+  </g>
+</svg>
+
