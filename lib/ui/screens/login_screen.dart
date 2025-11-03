@@ -1,10 +1,8 @@
 import 'package:email_validator/email_validator.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:assignment_task_manager_project/data/models/user_model.dart';
-import 'package:assignment_task_manager_project/data/services/api_caller.dart';
-import 'package:assignment_task_manager_project/data/utils/urls.dart';
-import 'package:assignment_task_manager_project/ui/controllers/auth_controller.dart';
+import 'package:provider/provider.dart';
+import 'package:assignment_task_manager_project/ui/controllers/sign_in_controller.dart';
 import 'package:assignment_task_manager_project/ui/screens/forgot_password_verify_email_screen.dart';
 import 'package:assignment_task_manager_project/ui/screens/main_nav_bar_holder_screen.dart';
 import 'package:assignment_task_manager_project/ui/screens/sign_up_screen.dart';
@@ -26,7 +24,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordTEController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  bool _loginInProgress = false;
+  // Progress comes from SignInController via Provider
 
   @override
   Widget build(BuildContext context) {
@@ -71,13 +69,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  Visibility(
-                    visible: _loginInProgress == false,
-                    replacement: CenteredProgressIndicator(),
-                    child: FilledButton(
-                      onPressed: _onTapLoginButton,
-                      child: Icon(Icons.arrow_circle_right_outlined),
-                    ),
+                  Consumer<SignInController>(
+                    builder: (context, controller, child) {
+                      return Visibility(
+                        visible: controller.inProgress == false,
+                        replacement: CenteredProgressIndicator(),
+                        child: FilledButton(
+                          onPressed: _onTapLoginButton,
+                          child: Icon(Icons.arrow_circle_right_outlined),
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 36),
                   Center(
@@ -142,32 +144,22 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
-    _loginInProgress = true;
-    setState(() {});
-    Map<String, dynamic> requestBody = {
-      "email": _emailTEController.text.trim(),
-      "password": _passwordTEController.text,
-    };
-    final ApiResponse response = await ApiCaller.postRequest(
-      url: Urls.loginUrl,
-      body: requestBody,
+    final controller = context.read<SignInController>();
+    final bool isSuccess = await controller.signIn(
+      _emailTEController.text.trim(),
+      _passwordTEController.text,
     );
-    if (response.isSuccess && response.responseData['status'] == 'success') {
-      UserModel model = UserModel.fromJson(response.responseData['data']);
-      String token = response.responseData['token'];
-
-      await AuthController.saveUserData(model, token);
-
-      await
-      Navigator.pushNamedAndRemoveUntil(
+    if (isSuccess) {
+      await Navigator.pushNamedAndRemoveUntil(
         context,
         MainNavBarHolderScreen.name,
         (predicate) => false,
       );
     } else {
-      _loginInProgress = false;
-      setState(() {});
-      showSnackBarMessage(context, response.errorMessage!);
+      showSnackBarMessage(
+        context,
+        controller.errorMessage ?? 'Login failed',
+      );
     }
   }
 

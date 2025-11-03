@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:assignment_task_manager_project/data/models/task_model.dart';
-import 'package:assignment_task_manager_project/data/services/api_caller.dart';
-import 'package:assignment_task_manager_project/data/utils/urls.dart';
+import 'package:assignment_task_manager_project/ui/controllers/delete_controller.dart';
+import 'package:assignment_task_manager_project/ui/controllers/status_update_controller.dart';
+import 'package:provider/provider.dart';
 import 'package:assignment_task_manager_project/ui/widgets/centered_progress_indicator.dart';
 import 'package:assignment_task_manager_project/ui/widgets/snack_bar_message.dart';
 
@@ -187,30 +188,30 @@ class _TaskCardState extends State<TaskCard> {
 
     _changeStatusInProgress = true;
     setState(() {});
-    final ApiResponse response = await ApiCaller.getRequest(
-      url: Urls.updateTaskStatusUrl(widget.taskModel.id, status),
-    );
+    final bool ok = await context.read<StatusUpdateController>()
+        .statusUpdate(widget.taskModel.id, status);
     _changeStatusInProgress = false;
     setState(() {});
-    if (response.isSuccess) {
+    if (ok) {
       widget.refreshParent();
     } else {
-      showSnackBarMessage(context, response.errorMessage!);
+      final String? msg = context.read<StatusUpdateController>().errorMessage;
+      showSnackBarMessage(context, msg ?? 'Failed to update status');
     }
   }
 
   Future<void> _deleteTask() async {
     _deleteInProgress = true;
     setState(() {});
-    final ApiResponse response = await ApiCaller.getRequest(
-      url: Urls.deleteTaskUrl(widget.taskModel.id),
-    );
+    final bool ok = await context.read<DeleteController>()
+        .deleteTask(widget.taskModel.id);
     _deleteInProgress = false;
     setState(() {});
-    if (response.isSuccess) {
+    if (ok) {
       widget.refreshParent();
     } else {
-      showSnackBarMessage(context, response.errorMessage!);
+      final String? msg = context.read<DeleteController>().errorMessage;
+      showSnackBarMessage(context, msg ?? 'Failed to delete task');
     }
   }
 

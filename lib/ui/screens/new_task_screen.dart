@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:assignment_task_manager_project/data/models/task_model.dart';
-import 'package:assignment_task_manager_project/data/models/task_status_count_model.dart';
-import 'package:assignment_task_manager_project/data/services/api_caller.dart';
-import 'package:assignment_task_manager_project/data/utils/urls.dart';
+import 'package:provider/provider.dart';
+import 'package:assignment_task_manager_project/ui/controllers/new_task_list_controller.dart';
+import 'package:assignment_task_manager_project/ui/controllers/task_summery_counter_controller.dart';
 import 'package:assignment_task_manager_project/ui/screens/add_new_task_screen.dart';
 import 'package:assignment_task_manager_project/ui/widgets/centered_progress_indicator.dart';
-import 'package:assignment_task_manager_project/ui/widgets/snack_bar_message.dart';
-
 import '../widgets/task_card.dart';
 import '../widgets/task_count_by_status_card.dart';
 
@@ -18,58 +15,28 @@ class NewTaskScreen extends StatefulWidget {
 }
 
 class _NewTaskScreenState extends State<NewTaskScreen> {
-  bool _getTaskStatusCountInProgress = false;
-  bool _getNewTaskInProgress = false;
-  List<TaskStatusCountModel> _taskStatusCountList = [];
-  List<TaskModel> _newTaskList = [];
 
   @override
   void initState() {
     super.initState();
-    _getAllTaskStatusCount();
-    _getAllNewTasks();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<TaskSummeryCounterController>().getTaskCount();
+      context.read<NewTaskListController>().getTaskList();
+    });
   }
 
-  Future<void> _getAllTaskStatusCount() async {
-    _getTaskStatusCountInProgress = true;
-    setState(() {});
-    final ApiResponse response = await ApiCaller.getRequest(
-      url: Urls.taskStatusCountUrl,
-    );
-    if (response.isSuccess) {
-      List<TaskStatusCountModel> list = [];
-      for (Map<String, dynamic> jsonData in response.responseData['data']) {
-        list.add(TaskStatusCountModel.fromJson(jsonData));
-      }
-      _taskStatusCountList = list;
-    } else {
-      showSnackBarMessage(context, response.errorMessage!);
-    }
-    _getTaskStatusCountInProgress = false;
-    setState(() {});
+  void _refreshCounts() {
+    context.read<TaskSummeryCounterController>().getTaskCount();
   }
 
-  Future<void> _getAllNewTasks() async {
-    _getNewTaskInProgress = true;
-    setState(() {});
-    final ApiResponse response = await ApiCaller.getRequest(
-      url: Urls.newTaskListUrl,
-    );
-    if (response.isSuccess) {
-      List<TaskModel> list = [];
-      for (Map<String, dynamic> jsonData in response.responseData['data']) {
-        list.add(TaskModel.fromJson(jsonData));
-      }
-      _newTaskList = list;
-    } else {
-      showSnackBarMessage(context, response.errorMessage!);
-    }
-    _getNewTaskInProgress = false;
-    setState(() {});
+  void _refreshTasks() {
+    context.read<NewTaskListController>().getTaskList();
   }
 
   @override
   Widget build(BuildContext context) {
+    final counterController = context.watch<TaskSummeryCounterController>();
+    final newTaskController = context.watch<NewTaskListController>();
     return Scaffold(
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -79,15 +46,15 @@ class _NewTaskScreenState extends State<NewTaskScreen> {
             SizedBox(
               height: 90,
               child: Visibility(
-                visible: _getTaskStatusCountInProgress == false,
+                visible: counterController.taskSummeryCounterInProgress == false,
                 replacement: CenteredProgressIndicator(),
                 child: ListView.separated(
-                  itemCount: _taskStatusCountList.length,
+                  itemCount: counterController.taskCount.length,
                   scrollDirection: Axis.horizontal,
                   itemBuilder: (context, index) {
                     return TaskCountByStatusCard(
-                      title: _taskStatusCountList[index].status,
-                      count: _taskStatusCountList[index].count,
+                      title: counterController.taskCount[index].status,
+                      count: counterController.taskCount[index].count,
                     );
                   },
                   separatorBuilder: (context, index) {
@@ -98,15 +65,16 @@ class _NewTaskScreenState extends State<NewTaskScreen> {
             ),
             Expanded(
               child: Visibility(
-                visible: _getNewTaskInProgress == false,
+                visible: newTaskController.newTaskListInProgress == false,
                 replacement: CenteredProgressIndicator(),
                 child: ListView.separated(
-                  itemCount: _newTaskList.length,
+                  itemCount: newTaskController.newTaskList.length,
                   itemBuilder: (context, index) {
                     return TaskCard(
-                      taskModel: _newTaskList[index],
+                      taskModel: newTaskController.newTaskList[index],
                       refreshParent: () {
-                        _getAllNewTasks();
+                        _refreshTasks();
+                        _refreshCounts();
                       },
                     );
                   },

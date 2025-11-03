@@ -1,16 +1,12 @@
-import 'dart:convert';
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:assignment_task_manager_project/data/models/user_model.dart';
-import 'package:assignment_task_manager_project/data/services/api_caller.dart';
-import 'package:assignment_task_manager_project/data/utils/urls.dart';
 import 'package:assignment_task_manager_project/ui/controllers/auth_controller.dart';
+import 'package:provider/provider.dart';
 import 'package:assignment_task_manager_project/ui/widgets/centered_progress_indicator.dart';
 import 'package:assignment_task_manager_project/ui/widgets/screen_background.dart';
 import 'package:assignment_task_manager_project/ui/widgets/snack_bar_message.dart';
 import 'package:assignment_task_manager_project/ui/widgets/tm_app_bar.dart';
+import 'package:assignment_task_manager_project/ui/controllers/update_profile_controller.dart';
 
 import '../widgets/photo_picker_field.dart';
 
@@ -31,10 +27,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
   final TextEditingController _passwordTEController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  final ImagePicker _imagePicker = ImagePicker();
-  XFile? _selectedImage;
-  
-  bool _updateProfileInProgress = false;
+  // Image and progress handled by UpdateProfileController via Provider
 
   @override
   void initState() {
@@ -69,9 +62,13 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                     style: TextTheme.of(context).titleLarge,
                   ),
                   const SizedBox(height: 24),
-                  PhotoPickerField(
-                    onTap: _pickImage,
-                    selectedPhoto: _selectedImage,
+                  Consumer<UpdateProfileController>(
+                    builder: (context, controller, _) {
+                      return PhotoPickerField(
+                        onTap: () => controller.pickImage(),
+                        selectedPhoto: controller.pickedImage,
+                      );
+                    },
                   ),
                   const SizedBox(height: 8),
                   TextFormField(
@@ -126,13 +123,17 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  Visibility(
-                    visible: _updateProfileInProgress == false,
-                    replacement: CenteredProgressIndicator(),
-                    child: FilledButton(
-                      onPressed: _onTapUpdateButton,
-                      child: Icon(Icons.arrow_circle_right_outlined),
-                    ),
+                  Consumer<UpdateProfileController>(
+                    builder: (context, controller, _) {
+                      return Visibility(
+                        visible: controller.updateProfileInProgress == false,
+                        replacement: CenteredProgressIndicator(),
+                        child: FilledButton(
+                          onPressed: _onTapUpdateButton,
+                          child: Icon(Icons.arrow_circle_right_outlined),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -150,66 +151,33 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
   }
   
   Future<void> _updateProfile() async {
-    _updateProfileInProgress = true;
-    setState(() {});
+    final controller = context.read<UpdateProfileController>();
+    final auth = context.read<AuthController>();
 
-    final Map<String, dynamic> requestBody = {
-      "email": _emailTEController.text,
-      "firstName": _firstNameTEController.text.trim(),
-      "lastName": _lastNameTEController.text.trim(),
-      "mobile": _mobileTEController.text.trim(),
-    };
-
-    if (_passwordTEController.text.isNotEmpty) {
-      requestBody['password'] = _passwordTEController.text;
-    }
-
-    String? encodedPhoto;
-
-    if (_selectedImage != null) {
-      List<int> bytes = await _selectedImage!.readAsBytes();
-      encodedPhoto = jsonEncode(bytes);
-      requestBody['photo'] = encodedPhoto;
-    }
-
-    final ApiResponse response = await ApiCaller.postRequest(
-        url: Urls.updateProfileUrl, body: requestBody);
-
-    _updateProfileInProgress = false;
-    setState(() {});
-
-    if (response.isSuccess) {
-      _passwordTEController.clear();
-
-      UserModel model = UserModel(id: AuthController.userModel!.id,
-          email: _emailTEController.text,
-          firstName: _firstNameTEController.text.trim(),
-          lastName: _lastNameTEController.text.trim(),
-          mobile: _mobileTEController.text.trim(),
-          photo: encodedPhoto ?? AuthController.userModel!.photo
-      );
-      await AuthController.updateUserData(model);
-
-      showSnackBarMessage(context, 'Profile has been updated!');
-    } else {
-    showSnackBarMessage(context, response.errorMessage!);
-    }
-  }
-
-
-  Future<void> _pickImage() async {
-    final XFile? pickedImage = await _imagePicker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 800,
-      maxHeight: 800,
-      imageQuality: 70,
+    final isSuccess = await controller.updateProfile(
+      _emailTEController.text,
+      _firstNameTEController.text.trim(),
+      _lastNameTEController.text.trim(),
+      _mobileTEController.text.trim(),
+      _passwordTEController.text,
+      auth,
     );
 
-    if (pickedImage != null) {
-      _selectedImage = pickedImage;
-      setState(() {});
+    if (!mounted) return;
+
+    if (isSuccess) {
+      _passwordTEController.clear();
+      showSnackBarMessage(context, 'Profile has been updated!');
+    } else {
+      showSnackBarMessage(
+        context,
+        controller.errorMessage ?? 'Something went wrong',
+      );
     }
   }
+
+
+  // Image picking handled by UpdateProfileController
 
 
 

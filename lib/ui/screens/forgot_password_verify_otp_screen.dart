@@ -1,6 +1,5 @@
-import 'package:assignment_task_manager_project/data/services/api_caller.dart';
-import 'package:assignment_task_manager_project/data/utils/urls.dart';
 import 'package:assignment_task_manager_project/ui/controllers/auth_controller.dart';
+import 'package:provider/provider.dart';
 import 'package:assignment_task_manager_project/ui/widgets/centered_progress_indicator.dart';
 import 'package:assignment_task_manager_project/ui/widgets/snack_bar_message.dart';
 import 'package:flutter/gestures.dart';
@@ -10,6 +9,7 @@ import 'package:assignment_task_manager_project/ui/screens/login_screen.dart';
 import 'package:assignment_task_manager_project/ui/screens/reset_password_screen.dart';
 import 'package:assignment_task_manager_project/ui/screens/sign_up_screen.dart';
 import 'package:assignment_task_manager_project/ui/widgets/screen_background.dart';
+import 'package:assignment_task_manager_project/ui/controllers/forgot_password_verify_otp_controller.dart';
 
 class ForgotPasswordVerifyOtpScreen extends StatefulWidget {
   const ForgotPasswordVerifyOtpScreen({super.key});
@@ -26,7 +26,7 @@ class _ForgotPasswordVerifyOtpScreenState
   final TextEditingController _otpTEController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  bool _forgotPasswordVerifyOtpScreenInProgress = false;
+  // Progress handled by ForgotPasswordVerifyOtpController via Provider
 
 
   @override
@@ -80,13 +80,18 @@ class _ForgotPasswordVerifyOtpScreenState
 
                   ),
                   const SizedBox(height: 16),
-                  Visibility(
-                    visible: _forgotPasswordVerifyOtpScreenInProgress==false,
-                    replacement: CenteredProgressIndicator(),
-                    child: FilledButton(
-                      onPressed: _onTapVerifyButton,
-                      child: Text('Verify'),
-                    ),
+                  Consumer<ForgotPasswordVerifyOtpController>(
+                    builder: (context, controller, _) {
+                      return Visibility(
+                        visible:
+                            controller.forgotPasswordOtpInProgress == false,
+                        replacement: CenteredProgressIndicator(),
+                        child: FilledButton(
+                          onPressed: _onTapVerifyButton,
+                          child: Text('Verify'),
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 36),
                   Center(
@@ -122,29 +127,26 @@ class _ForgotPasswordVerifyOtpScreenState
 
   void _onTapVerifyButton() {
     if (_formKey.currentState!.validate()) {
-      _recoveryOtp(AuthController.getEmail, _otpTEController.text);
+      _recoveryOtp(context.read<AuthController>().getEmail, _otpTEController.text);
     }
   }
 
-  void _recoveryOtp(String email, String pinCode) async{
-    _forgotPasswordVerifyOtpScreenInProgress = true;
-    setState(() {});
-    final ApiResponse response = await ApiCaller.getRequest(
-      url: Urls.recoveryOtpUrl(email, pinCode),
-    );
+  void _recoveryOtp(String email, String pinCode) async {
+    final controller = context.read<ForgotPasswordVerifyOtpController>();
+    final isSuccess = await controller.forgotPasswordVerifyOtp(email, pinCode);
 
-    _forgotPasswordVerifyOtpScreenInProgress = false;
-    setState(() {});
+    if (!mounted) return;
 
-
-
-    if (response.isSuccess) {
+    if (isSuccess) {
       showSnackBarMessage(context, 'Otp verification successful');
-      AuthController.setPinCode = pinCode;
-      Navigator.pushNamed(context, ResetPasswordScreen.name,);
+      context.read<AuthController>().setPinCode = pinCode;
+      Navigator.pushNamed(context, ResetPasswordScreen.name);
       _otpTEController.clear();
     } else {
-      showSnackBarMessage(context, response.errorMessage!);
+      showSnackBarMessage(
+        context,
+        controller.errorMessage ?? 'Something went wrong',
+      );
     }
   }
 

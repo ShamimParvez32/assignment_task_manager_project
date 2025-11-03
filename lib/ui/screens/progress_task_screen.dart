@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:assignment_task_manager_project/ui/controllers/progress_task_list_controller.dart';
+import 'package:assignment_task_manager_project/ui/controllers/task_summery_counter_controller.dart';
 import 'package:assignment_task_manager_project/ui/widgets/centered_progress_indicator.dart';
-
-import '../../data/models/task_model.dart';
-import '../../data/services/api_caller.dart';
-import '../../data/utils/urls.dart';
-import '../widgets/snack_bar_message.dart';
 import '../widgets/task_card.dart';
 
 class ProgressTaskScreen extends StatefulWidget {
@@ -15,49 +13,37 @@ class ProgressTaskScreen extends StatefulWidget {
 }
 
 class _ProgressTaskScreenState extends State<ProgressTaskScreen> {
-  bool _getProgressTaskInProgress = false;
-  List<TaskModel> _progressTaskList = [];
 
   @override
   void initState() {
     super.initState();
-    _getAllProgressTasks();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ProgressTaskListController>().getProgressTaskList();
+      context.read<TaskSummeryCounterController>().getTaskCount();
+    });
   }
 
-  Future<void> _getAllProgressTasks() async {
-    _getProgressTaskInProgress = true;
-    setState(() {});
-    final ApiResponse response = await ApiCaller.getRequest(
-      url: Urls.progressTaskListUrl,
-    );
-    if (response.isSuccess) {
-      List<TaskModel> list = [];
-      for (Map<String, dynamic> jsonData in response.responseData['data']) {
-        list.add(TaskModel.fromJson(jsonData));
-      }
-      _progressTaskList = list;
-    } else {
-      showSnackBarMessage(context, response.errorMessage!);
-    }
-    _getProgressTaskInProgress = false;
-    setState(() {});
+  void _refresh() {
+    context.read<ProgressTaskListController>().getProgressTaskList();
+    context.read<TaskSummeryCounterController>().getTaskCount();
   }
 
   @override
   Widget build(BuildContext context) {
+    final progressController = context.watch<ProgressTaskListController>();
     return Scaffold(
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Visibility(
-          visible: _getProgressTaskInProgress == false,
+          visible: progressController.progressTaskListInProgress == false,
           replacement: CenteredProgressIndicator(),
           child: ListView.separated(
-            itemCount: _progressTaskList.length,
+            itemCount: progressController.progressTaskList.length,
             itemBuilder: (context, index) {
               return TaskCard(
-                taskModel: _progressTaskList[index],
+                taskModel: progressController.progressTaskList[index],
                 refreshParent: () {
-                  _getAllProgressTasks();
+                  _refresh();
                 },
               );
             },

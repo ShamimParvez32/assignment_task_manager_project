@@ -1,12 +1,12 @@
 import 'package:email_validator/email_validator.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:assignment_task_manager_project/data/services/api_caller.dart';
-import 'package:assignment_task_manager_project/data/utils/urls.dart';
 import 'package:assignment_task_manager_project/ui/widgets/screen_background.dart';
+import 'package:provider/provider.dart';
 
 import '../widgets/centered_progress_indicator.dart';
 import '../widgets/snack_bar_message.dart';
+import '../controllers/sign_up_controller.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -25,7 +25,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController _passwordTEController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  bool _signUpInProgress = false;
+  // Progress handled by SignUpController via Provider
 
   @override
   Widget build(BuildContext context) {
@@ -108,13 +108,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  Visibility(
-                    visible: _signUpInProgress == false,
-                    replacement: CenteredProgressIndicator(),
-                    child: FilledButton(
-                      onPressed: _onTapSubmitButton,
-                      child: Icon(Icons.arrow_circle_right_outlined),
-                    ),
+                  Consumer<SignUpController>(
+                    builder: (context, controller, _) {
+                      return Visibility(
+                        visible: controller.signUpInProgress == false,
+                        replacement: CenteredProgressIndicator(),
+                        child: FilledButton(
+                          onPressed: _onTapSubmitButton,
+                          child: Icon(Icons.arrow_circle_right_outlined),
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 36),
                   Center(
@@ -156,27 +160,25 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Future<void> _signUp() async {
-    _signUpInProgress = true;
-    setState(() {});
-    Map<String, dynamic> requestBody = {
-      "email": _emailTEController.text.trim(),
-      "firstName": _firstNameTEController.text.trim(),
-      "lastName": _lastNameTEController.text.trim(),
-      "mobile": _mobileTEController.text.trim(),
-      "password": _passwordTEController.text,
-    };
-    final ApiResponse response = await ApiCaller.postRequest(
-      url: Urls.registrationUrl,
-      body: requestBody,
+    final controller = context.read<SignUpController>();
+    final isSuccess = await controller.signUp(
+      _emailTEController.text.trim(),
+      _firstNameTEController.text.trim(),
+      _lastNameTEController.text.trim(),
+      _mobileTEController.text.trim(),
+      _passwordTEController.text,
     );
-    _signUpInProgress = false;
-    setState(() {});
 
-    if (response.isSuccess) {
+    if (!mounted) return;
+
+    if (isSuccess) {
       _clearTextFields();
       showSnackBarMessage(context, 'Registration success! Please login.');
     } else {
-      showSnackBarMessage(context, response.errorMessage!);
+      showSnackBarMessage(
+        context,
+        controller.errorMessage ?? 'Something went wrong',
+      );
     }
   }
 

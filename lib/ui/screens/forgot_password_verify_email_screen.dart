@@ -1,5 +1,3 @@
-import 'package:assignment_task_manager_project/data/services/api_caller.dart';
-import 'package:assignment_task_manager_project/data/utils/urls.dart';
 import 'package:assignment_task_manager_project/ui/controllers/auth_controller.dart';
 import 'package:assignment_task_manager_project/ui/widgets/centered_progress_indicator.dart';
 import 'package:assignment_task_manager_project/ui/widgets/snack_bar_message.dart';
@@ -8,6 +6,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:assignment_task_manager_project/ui/screens/forgot_password_verify_otp_screen.dart';
 import 'package:assignment_task_manager_project/ui/widgets/screen_background.dart';
+import 'package:provider/provider.dart';
+import 'package:assignment_task_manager_project/ui/controllers/forgot_password_verify_email_controller.dart';
 
 class ForgotPasswordVerifyEmailScreen extends StatefulWidget {
   const ForgotPasswordVerifyEmailScreen({super.key});
@@ -23,7 +23,7 @@ class _ForgotPasswordVerifyEmailScreenState
   final TextEditingController _emailTEController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  bool _forgotPasswordVerifyEmailScreenInProgress = false;
+  // Progress handled by ForgotPasswordVerifyEmailController via Provider
 
 
 
@@ -64,13 +64,18 @@ class _ForgotPasswordVerifyEmailScreenState
                     },
                   ),
                   const SizedBox(height: 16),
-                  Visibility(
-                    visible: _forgotPasswordVerifyEmailScreenInProgress==false,
-                    replacement: CenteredProgressIndicator(),
-                    child: FilledButton(
-                      onPressed: _onTapNextButton,
-                      child: Icon(Icons.arrow_circle_right_outlined),
-                    ),
+                  Consumer<ForgotPasswordVerifyEmailController>(
+                    builder: (context, controller, _) {
+                      return Visibility(
+                        visible:
+                            controller.forgotPasswordEmailInProgress == false,
+                        replacement: CenteredProgressIndicator(),
+                        child: FilledButton(
+                          onPressed: _onTapNextButton,
+                          child: Icon(Icons.arrow_circle_right_outlined),
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 36),
                   Center(
@@ -108,24 +113,22 @@ class _ForgotPasswordVerifyEmailScreenState
   }
 
 
-
   Future<void> _recoveryEmail(String email) async {
-    _forgotPasswordVerifyEmailScreenInProgress= true;
-    setState(() {});
+    final controller = context.read<ForgotPasswordVerifyEmailController>();
+    final isSuccess = await controller.forgotPasswordVerifyEmail(email);
 
-    final ApiResponse response = await ApiCaller.getRequest(
-      url: Urls.recoveryMailUrl(email),
-    );
-    _forgotPasswordVerifyEmailScreenInProgress= false;
-    setState(() {});
+    if (!mounted) return;
 
-    if (response.isSuccess) {
+    if (isSuccess) {
       showSnackBarMessage(context, 'Email verification successful');
-      AuthController.setEmail =email;
-      Navigator.pushNamed(context, ForgotPasswordVerifyOtpScreen.name,);
+      context.read<AuthController>().setEmail = email;
+      Navigator.pushNamed(context, ForgotPasswordVerifyOtpScreen.name);
       _emailTEController.clear();
     } else {
-      showSnackBarMessage(context, response.errorMessage!);
+      showSnackBarMessage(
+        context,
+        controller.errorMessage ?? 'Something went wrong',
+      );
     }
   }
 

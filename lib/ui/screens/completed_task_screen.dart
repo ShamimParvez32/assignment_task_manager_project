@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:assignment_task_manager_project/ui/controllers/completed_task_list_controller.dart';
+import 'package:assignment_task_manager_project/ui/controllers/task_summery_counter_controller.dart';
 import 'package:assignment_task_manager_project/ui/widgets/centered_progress_indicator.dart';
-
-import '../../data/models/task_model.dart';
-import '../../data/services/api_caller.dart';
-import '../../data/utils/urls.dart';
-import '../widgets/snack_bar_message.dart';
 import '../widgets/task_card.dart';
 
 class CompletedTaskScreen extends StatefulWidget {
@@ -15,49 +13,37 @@ class CompletedTaskScreen extends StatefulWidget {
 }
 
 class _CompletedTaskScreenState extends State<CompletedTaskScreen> {
-  bool _getCompletedTaskInProgress = false;
-  List<TaskModel> _completedTaskList = [];
 
   @override
   void initState() {
     super.initState();
-    _getAllCompletedTasks();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<CompletedTaskListController>().getCompletedTaskList();
+      context.read<TaskSummeryCounterController>().getTaskCount();
+    });
   }
 
-  Future<void> _getAllCompletedTasks() async {
-    _getCompletedTaskInProgress = true;
-    setState(() {});
-    final ApiResponse response = await ApiCaller.getRequest(
-      url: Urls.completedTaskListUrl,
-    );
-    if (response.isSuccess) {
-      List<TaskModel> list = [];
-      for (Map<String, dynamic> jsonData in response.responseData['data']) {
-        list.add(TaskModel.fromJson(jsonData));
-      }
-      _completedTaskList = list;
-    } else {
-      showSnackBarMessage(context, response.errorMessage!);
-    }
-    _getCompletedTaskInProgress = false;
-    setState(() {});
+  void _refresh() {
+    context.read<CompletedTaskListController>().getCompletedTaskList();
+    context.read<TaskSummeryCounterController>().getTaskCount();
   }
 
   @override
   Widget build(BuildContext context) {
+    final completedController = context.watch<CompletedTaskListController>();
     return Scaffold(
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Visibility(
-          visible: _getCompletedTaskInProgress == false,
+          visible: completedController.completedTaskListInProgress == false,
           replacement: CenteredProgressIndicator(),
           child: ListView.separated(
-            itemCount: _completedTaskList.length,
+            itemCount: completedController.completedTaskList.length,
             itemBuilder: (context, index) {
               return TaskCard(
-                taskModel: _completedTaskList[index],
+                taskModel: completedController.completedTaskList[index],
                 refreshParent: () {
-                  _getAllCompletedTasks();
+                  _refresh();
                 },
               );
             },
